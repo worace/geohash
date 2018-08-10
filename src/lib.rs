@@ -54,6 +54,41 @@ impl Direction {
     }
 }
 
+pub fn encode_long(c: Coordinate<f64>, bits: usize) -> u64 {
+    let mut bits_total = 0;
+    let mut hash_value: u64 = 0;
+    let mut max_lat = 90f64;
+    let mut min_lat = -90f64;
+    let mut max_lon = 180f64;
+    let mut min_lon = -180f64;
+    let mut mid: f64;
+
+    while bits_total < bits {
+        if bits_total % 2 == 0 {
+            mid = (max_lon + min_lon) / 2f64;
+            if c.x > mid {
+                hash_value = (hash_value << 1) + 1;
+                min_lon = mid;
+            } else {
+                hash_value <<= 1;
+                max_lon = mid;
+            }
+        } else {
+            mid = (max_lat + min_lat) / 2f64;
+            if c.y > mid {
+                hash_value = (hash_value << 1) + 1;
+                min_lat = mid;
+            } else {
+                hash_value <<= 1;
+                max_lat = mid;
+            }
+        }
+
+        bits_total += 1;
+    }
+    hash_value
+}
+
 /// Encode a coordinate to a geohash with length `len`.
 ///
 /// # Examples
@@ -284,7 +319,7 @@ pub fn neighbors(hash_str: &str) -> Neighbors {
 
 #[cfg(test)]
 mod test {
-    use {encode, decode, neighbors};
+    use {encode, decode, neighbors, encode_long};
     use geo_types::Coordinate;
     use num_traits::Float;
 
@@ -295,6 +330,7 @@ mod test {
             y: 37.8324f64,
         };
         assert_eq!(encode(c0, 9usize), "ww8p1r4t8".to_string());
+        assert_eq!(encode_long(c0, 60), 1040636137860004224);
         let c1 = Coordinate {
             x: 117f64,
             y: 32f64,
